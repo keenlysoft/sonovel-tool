@@ -1,151 +1,64 @@
-# SoNovel + NovelCraft - 网文拆书学习工具套件
+# SoNovel Lite
 
-一套完整的网络小说学习工具，包含小说下载服务和 Obsidian 智能分析插件。
+只保留小说搜索和 TXT 下载的本地 Web 工具。
 
-> SoNovel 基于 [freeok/so-novel](https://github.com/freeok/so-novel) 修改
+## 功能
 
-## 📦 项目组成
+- 聚合搜索多个书源
+- 连续点击多本书，后台自动排队下载
+- 所有新下载统一生成 UTF-8 TXT
+- 已下载文件保存在 `downloads/`
 
-| 组件 | 说明 |
-|------|------|
-| **SoNovel** | 小说搜索下载服务，支持多书源 |
-| **NovelCraft** | Obsidian 插件，AI 驱动的小说分析工具 |
+不再包含 Obsidian 插件、AI 分析、时间线、笔记生成和多格式解析功能。
 
-## ✨ 功能特点
+## 启动
 
-### SoNovel 下载服务
-- 多书源搜索和下载
-- WebUI 和 CLI 两种模式
-- Docker 一键部署
-- 自定义书源规则
-
-### NovelCraft 分析插件
-- 多格式支持：EPUB、TXT、DOCX、PDF
-- AI 智能分析：人物、情节、写作技法
-- 流式对话追问
-- 结构化笔记生成
-- Token 消耗追踪
-
-## 🚀 快速开始
-
-### 1. 启动 SoNovel 服务
-
-**Docker 部署（推荐）**
-```bash
-docker-compose up -d
-# 访问 http://localhost:7765
-```
-
-**本地运行**
-```bash
-# macOS
-./run-macos.sh
-
-# Windows (需要先安装 Java 17+)
-# 下载 Java: https://adoptium.net/
-run-windows.bat
-```
-
-### 2. 安装 NovelCraft 插件
+需要 Docker Desktop 或 Docker Engine + Compose。
 
 ```bash
-cd novel-craft
-npm install
-npm run build
+docker-compose up -d --build
 ```
 
-将 `novel-craft` 文件夹复制到 Obsidian 插件目录：
-```
-<vault>/.obsidian/plugins/novel-craft/
-```
+打开 <http://localhost:7765/>。
 
-### 3. 配置插件
+也可使用项目脚本：
 
-1. 在 Obsidian 设置中启用 NovelCraft
-2. 配置 LLM 服务（OpenAI/Claude/DeepSeek 等）
-3. 配置 SoNovel 服务地址（默认 `http://localhost:7765`）
-
-## 📖 使用流程
-
-```
-搜索小说 → 下载 EPUB → 导入 Obsidian → AI 分析 → 生成笔记 → 追问对话
+```bash
+./start-docker.sh start
+./start-docker.sh status
+./start-docker.sh logs
+./start-docker.sh stop
 ```
 
-1. 在 NovelCraft 主面板搜索小说
-2. 下载到 Vault
-3. 选择分析模式和章节范围
-4. 查看生成的分析笔记
-5. 通过对话深入探讨
+## 目录
 
-## 📁 目录结构
-
-```
-├── app.jar              # SoNovel 服务
-├── config.ini           # SoNovel 配置
-├── rules/               # 书源规则
-├── downloads/           # 下载目录
-├── novel-craft/         # Obsidian 插件
-│   ├── main.ts          # 插件入口
-│   ├── src/             # 源代码
-│   └── styles.css       # 样式
-├── Dockerfile           # Docker 构建
-└── docker-compose.yml   # Docker Compose
+```text
+app.jar              SoNovel 核心服务
+config.ini           搜索、抓取和 TXT 输出配置
+rules/               书源规则
+web/                 非阻塞下载队列
+downloads/           下载文件（不纳入 Git）
+Dockerfile           精简 JRE 运行镜像
+docker-compose.yml   Java 服务与 Nginx 网关
 ```
 
-## ⚙️ 配置说明
+Web 端口只绑定 `127.0.0.1`。`/book-fetch` 由网关串行保护，避免 SoNovel 同时处理多本书时产生错误文件。
 
-### 系统要求
+## 配置
 
-| 平台 | 要求 |
-|------|------|
-| macOS | 内置 Java 运行时，无需额外安装 |
-| Windows | 需要安装 Java 17+，推荐 [Adoptium](https://adoptium.net/) |
-| Docker | 推荐方式，无需安装 Java |
+`config.ini` 中最常用的项：
 
-### SoNovel 配置 (config.ini)
 ```ini
-[web]
-enabled = 1
-port = 7765
-
 [download]
-path = downloads
-interval = 500
+download-path = downloads
+extname = txt
+
+[source]
+search-limit = 30
+
+[crawl]
+min-interval = 200
+max-interval = 400
 ```
 
-### NovelCraft LLM 配置
-| 服务商 | API 地址 |
-|--------|----------|
-| OpenAI | `https://api.openai.com/v1` |
-| Claude | `https://api.anthropic.com` |
-| DeepSeek | `https://api.deepseek.com` |
-
-## 🐳 Docker 部署
-
-```bash
-# 构建并启动
-docker-compose up -d
-
-# 查看日志
-docker-compose logs -f
-
-# 停止服务
-docker-compose down
-```
-
-详细部署说明：[DEPLOYMENT.md](DEPLOYMENT.md)
-
-## 📚 文档
-
-- [NovelCraft 插件详细文档](novel-craft/README.md)
-- [部署指南](DEPLOYMENT.md)
-- [项目说明](PROJECT_README.md)
-
-## 📄 许可证
-
-MIT License
-
-## 🙏 致谢
-
-- [freeok/so-novel](https://github.com/freeok/so-novel) - 原版小说下载工具
-- [Obsidian](https://obsidian.md/) - 知识管理工具
+更多启停和更新方法见 [DEPLOYMENT.md](DEPLOYMENT.md)。

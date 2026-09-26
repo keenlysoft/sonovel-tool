@@ -1,156 +1,48 @@
-# SoNovel Docker 部署指南
+# SoNovel Lite 部署
 
-本项目已 Docker 化，可以通过 Docker 容器运行 SoNovel 应用程序。
-
-## 📁 文件结构
-
-```
-├── Dockerfile           # Docker 构建文件
-├── docker-compose.yml   # Docker Compose 配置
-├── nginx.conf           # Nginx 反向代理配置
-├── config.ini           # 应用程序配置
-├── app.jar              # 应用程序 JAR 文件
-├── rules/               # 书源规则目录
-└── downloads/           # 下载目录
-```
-
-## 🚀 快速开始
-
-### 使用 Docker Compose（推荐）
+## 启动
 
 ```bash
-# 启动服务
-docker-compose up -d
-
-# 访问 WebUI
-open http://localhost:7765
-```
-
-### 使用 Docker 命令
-
-```bash
-# 构建镜像
-docker build -t sonovel-webui .
-
-# 运行容器
-docker run -d \
-  -p 7765:7765 \
-  -v $(pwd)/config.ini:/app/config.ini \
-  -v $(pwd)/rules:/app/rules \
-  -v $(pwd)/downloads:/app/downloads \
-  --name sonovel \
-  sonovel-webui
-```
-
-## ⚙️ 配置说明
-
-### Web 服务配置
-
-`config.ini` 中的 Web 服务配置：
-
-```ini
-[web]
-enabled = 1      # 开启 Web 服务
-port = 7765      # 服务端口
-```
-
-### 数据持久化
-
-Docker 容器使用以下卷挂载：
-
-| 路径 | 说明 |
-|------|------|
-| `config.ini` | 配置文件 |
-| `rules/` | 书源规则目录 |
-| `downloads/` | 下载文件目录 |
-
-### 环境变量
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `CONFIG_FILE` | `/app/config.ini` | 配置文件路径 |
-| `MODE` | `web` | 运行模式 |
-
-## 🔧 容器管理
-
-### Docker Compose 命令
-
-```bash
-# 启动服务
-docker-compose up -d
-
-# 查看状态
-docker-compose ps
-
-# 查看日志
-docker-compose logs -f
-
-# 停止服务
-docker-compose down
-
-# 重新构建
 docker-compose up -d --build
 ```
 
-### Docker 命令
+访问 <http://localhost:7765/>。端口只绑定本机回环地址。
+
+## 常用命令
 
 ```bash
-# 查看日志
-docker logs sonovel
-
-# 停止容器
-docker stop sonovel
-
-# 启动容器
-docker start sonovel
-
-# 重启容器
-docker restart sonovel
-
-# 删除容器
-docker rm -f sonovel
+docker-compose ps
+docker-compose logs -f sonovel
+docker-compose restart
+docker-compose down
 ```
 
-## 🔄 更新应用
+## 数据和配置
 
-1. 下载新的 `app.jar` 文件
-2. 重新构建镜像：
-   ```bash
-   docker-compose build --no-cache
-   ```
-3. 重启服务：
-   ```bash
-   docker-compose up -d
-   ```
+| 路径 | 用途 |
+|---|---|
+| `config.ini` | 运行配置，已固定 TXT 输出 |
+| `rules/` | 搜索和章节解析规则 |
+| `downloads/` | 持久化下载文件 |
 
-## ❗ 故障排除
+`downloads/` 不会被镜像重建或 `docker-compose down` 删除。
 
-### 端口冲突
+## 更新 `app.jar`
 
-修改 `config.ini` 中的端口号，并更新 `docker-compose.yml` 中的端口映射。
+1. 替换根目录的 `app.jar`。
+2. 重建并启动：
 
-### 权限问题
-
-确保 `downloads/` 目录可写：
 ```bash
-mkdir -p downloads
-chmod 777 downloads
+docker-compose up -d --build
 ```
 
-### 容器无法启动
+## 排错
 
-检查日志：
 ```bash
-docker logs sonovel
+docker-compose ps
+docker-compose logs --tail=200 sonovel
+docker exec sonovel-proxy nginx -t
+curl -I http://localhost:7765/
 ```
 
-## 🔒 安全建议
-
-1. 生产环境中配置防火墙
-2. 使用反向代理添加 HTTPS 支持
-3. 定期备份 `downloads/` 目录
-
-## 📮 支持
-
-- 项目 GitHub：https://github.com/freeok/so-novel
-- 问题反馈：https://github.com/freeok/so-novel/issues
+如果书源失效，优先更新 `rules/`；如果下载失败，先检查 `downloads/` 目录是否可写。

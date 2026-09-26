@@ -27,12 +27,3 @@ Thumbs.db
 
 # 运行时生成的文件
 *.pid
-
-# Node.js
-novel-craft/node_modules/
-novel-craft/main.js
-novel-craft/main.js.map
-novel-craft/coverage/
-
-# Runtime (macOS app bundle - too large)
-runtime/
