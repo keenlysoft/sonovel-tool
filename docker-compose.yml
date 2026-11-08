@@ -14,7 +14,14 @@ services:
     environment:
       - MODE=web
     mem_limit: 384m
+    cpus: 1.0
+    pids_limit: 128
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     # 健康检查，确保 Web 服务正常运行
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:7765"]
@@ -34,4 +41,12 @@ services:
       - ./web/async-download.js:/usr/share/nginx/html/async-download.js:ro
     depends_on:
       - sonovel
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 64
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
