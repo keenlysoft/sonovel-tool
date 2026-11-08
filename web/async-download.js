@@ -35,6 +35,34 @@
     `${String(book?.size ?? '')}:${String(book?.timestamp ?? book?.downloadedAt ?? '')}`
   );
 
+  const selectDownloadedBook = (book, booksBeforeDownload, booksAfterDownload) => {
+    const title = normalizeFilename(book.bookName);
+    const expected = normalizeFilename(buildFilename(book));
+    const hasAuthor = Boolean(book.author.trim());
+    const previous = new Map(booksBeforeDownload.map((file) => [
+      normalizeFilename(String(file.name || file.filename || '')),
+      localBookSignature(file)
+    ]));
+    const candidates = booksAfterDownload.filter((file) => {
+      const filename = normalizeFilename(String(file.name || file.filename || ''));
+      let matches = filename === expected;
+      if (!hasAuthor && title && filename.startsWith(`${title}(`) && filename.endsWith(').txt')) {
+        const inferredAuthor = filename.slice(title.length + 1, -5).trim();
+        matches = Boolean(inferredAuthor);
+      }
+      return matches && previous.get(filename) !== localBookSignature(file);
+    });
+    if (candidates.length > 1) {
+      throw new Error('下载后发现多个可能的 TXT 文件，请在“已下书籍”中核对');
+    }
+    return candidates[0] || null;
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { selectDownloadedBook };
+    return;
+  }
+
   const showNotice = (message, kind = 'info') => {
     let container = document.getElementById('async-download-notices');
     if (!container) {
@@ -171,14 +199,11 @@
     };
   };
 
-  const waitForDownloadedBook = async (expectedFilename, previousSignature, signal) => {
-    const expected = normalizeFilename(expectedFilename);
+  const waitForDownloadedBook = async (book, booksBeforeDownload, signal) => {
     for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
       const books = await getLocalBooks(signal);
-      const downloaded = books.find((book) => (
-        normalizeFilename(String(book.name || book.filename || '')) === expected
-      ));
-      if (downloaded && localBookSignature(downloaded) !== previousSignature) {
+      const downloaded = selectDownloadedBook(book, booksBeforeDownload, books);
+      if (downloaded) {
         return {
           filename: String(downloaded.name || downloaded.filename),
           books
@@ -200,16 +225,17 @@
       controller.abort();
     }, BOOK_FETCH_TIMEOUT_MS);
     const execute = async () => {
-      const booksBeforeDownload = await getLocalBooks(controller.signal);
+      const queuedSignature = await queuedSignaturePromise;
+      let booksBeforeDownload = await getLocalBooks(controller.signal);
       const bookBeforeDownload = booksBeforeDownload.find((candidate) => (
         normalizeFilename(String(candidate.name || candidate.filename || '')) === normalizeFilename(expectedFilename)
       ));
       const currentSignature = bookBeforeDownload ? localBookSignature(bookBeforeDownload) : null;
-      const queuedSignature = await queuedSignaturePromise;
 
       // Another tab may have completed this same book while this task waited
       // for the origin-wide Web Lock. Reuse that result instead of fetching it again.
-      if (queuedSignature !== undefined && queuedSignature !== currentSignature && bookBeforeDownload) {
+      if (book.author.trim() && queuedSignature !== undefined
+          && queuedSignature !== currentSignature && bookBeforeDownload) {
         return {
           filename: String(bookBeforeDownload.name || bookBeforeDownload.filename),
           books: booksBeforeDownload
@@ -223,13 +249,14 @@
         if (response.status === 429) {
           await response.arrayBuffer();
           await delayWithSignal(POLL_INTERVAL_MS, controller.signal);
+          booksBeforeDownload = await getLocalBooks(controller.signal);
         }
       } while (response.status === 429);
       if (!response.ok) {
         throw new Error(`启动下载失败 (${response.status})`);
       }
       await response.arrayBuffer();
-      return await waitForDownloadedBook(expectedFilename, currentSignature ?? '', controller.signal);
+      return await waitForDownloadedBook(book, booksBeforeDownload, controller.signal);
     };
 
     try {

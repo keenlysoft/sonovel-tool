@@ -8,6 +8,8 @@
 - 连续点击多本书，后台自动排队下载
 - 所有新下载统一生成 UTF-8 TXT
 - 已下载文件保存在 `downloads/`
+- 香港部署使用 `hongkong-rules.json`，保留旧书源编号并加入可达书源
+- Linux 镜像补齐 JavaScript 原生依赖，目录按章节 URL 去重，保留同名不同章
 
 不再包含 Obsidian 插件、AI 分析、时间线、笔记生成和多格式解析功能。
 
@@ -36,6 +38,8 @@ docker-compose up -d --build
 app.jar              SoNovel 核心服务
 config.ini           搜索、抓取和 TXT 输出配置
 rules/               书源规则
+patches/             v1.9.6 的目录与 JavaScript 资源兼容补丁
+tests/               文件匹配回归及有界的真实解析验收
 web/                 非阻塞下载队列
 downloads/           下载文件（不纳入 Git）
 Dockerfile           精简 JRE 运行镜像
@@ -55,6 +59,7 @@ extname = txt
 
 [source]
 search-limit = 30
+active-rules = hongkong-rules.json
 
 [crawl]
 min-interval = 200
@@ -62,3 +67,5 @@ max-interval = 400
 ```
 
 更多启停和更新方法见 [DEPLOYMENT.md](DEPLOYMENT.md)。
+
+书源适用地区、保留编号及验证范围见 [rules/SOURCES.md](rules/SOURCES.md)。首次构建会从 Maven Central 获取与容器架构匹配的 Javet 5.0.1 原生依赖，并检查固定 SHA256；运行镜像只包含 JRE。
