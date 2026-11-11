@@ -11,6 +11,10 @@ RUN javac -proc:none -J-Xmx128m -J-XX:ActiveProcessorCount=1 \
       -d /build/tools /build/patches/PatchChapterParser.java && \
     java -Xmx64m -XX:ActiveProcessorCount=1 -cp /build/tools \
       PatchChapterParser /build/app.jar /build/classes
+RUN javac -proc:none -J-Xmx128m -J-XX:ActiveProcessorCount=1 \
+      -d /build/tools /build/patches/PatchThreadLimiter.java && \
+    java -Xmx64m -XX:ActiveProcessorCount=1 -cp /build/tools \
+      PatchThreadLimiter /build/app.jar /build/classes
 
 # Javet 的 Linux 原生库依赖 glibc，不能使用 Alpine/musl。
 FROM eclipse-temurin:21-jre
